@@ -1,5 +1,6 @@
 import cv2
 import copy
+import numpy as np
 
 
 class VisionAlgorithm:
@@ -42,10 +43,12 @@ class VisionAlgorithm:
         image_temp = cv2.medianBlur(image_temp, 5)
         var, image_temp = cv2.threshold(image_temp, 10, 255, cv2.THRESH_BINARY)  # maska: 1-droga 0-otoczenie
         mask = copy.copy(image_temp)
-        cv2.imshow("mask", mask)
-        cv2.waitKey(0)
         im2, contours, hier = cv2.findContours(mask, 1, 2)
         contours = contours[0]
         epsilon = 0.01*cv2.arcLength(contours, True)
         contours = cv2.approxPolyDP(contours, epsilon, True)
-        cv2.polylines(self.image_to_display, [contours], 1, (0, 255, 0), 3)
+        cv2.polylines(self.image_to_display, [contours], 1, (0, 255, 0), 1)  # rysuje polygon wokol drogi
+        corners_of_image = np.array([[1, img_h], [img_w, img_h], [img_w, 1], [1, 1]], dtype="float32")
+        contours = np.array([[171, 474], [622, 479], [373, 299], [270, 299]], dtype="float32")
+        transform = cv2.getPerspectiveTransform(contours, corners_of_image)
+        self.image_to_display = cv2.warpPerspective(self.image_to_display, transform, (img_w, img_h))  # przeksztalcenie perspektywy / droga w widoku z gory jako prostokat
