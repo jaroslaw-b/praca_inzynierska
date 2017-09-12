@@ -1,4 +1,5 @@
 import cv2
+import copy
 
 
 class VisionAlgorithm:
@@ -12,10 +13,11 @@ class VisionAlgorithm:
         
     def load_image(self):
         
-        image_raw = cv2.imread("test_images/test_image_5.jpg")
+        image_raw = cv2.imread("test_images/test_image_6.jpg")
         image_resized = cv2.resize(image_raw, (self.IMG_WIDTH, self.IMG_HEIGHT))
-        for i in range(1, self.IMG_WIDTH):
-            for j in range(1, self.IMG_HEIGHT-180):
+        self.image_to_display = copy.copy(image_resized)
+        for i in range(0, self.IMG_WIDTH):
+            for j in range(0, self.IMG_HEIGHT-180):
                 image_resized[j][i] = (255, 255, 0)
         self.image_in_process = image_resized
 
@@ -37,10 +39,13 @@ class VisionAlgorithm:
         morph_element = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
         image_temp = cv2.erode(image_temp, morph_element, iterations=2)
         image_temp = cv2.dilate(image_temp, morph_element, iterations=2)
-        var, image_temp = cv2.threshold(image_temp, 10, 255, cv2.THRESH_BINARY)
-        image_road = self.image_in_process
-        for i in range(0, img_w):
-            for j in range(0, img_h):
-                if image_temp[j][i] == 0:
-                    image_road[j][i] = (255, 255, 0)
-        self.image_to_display = image_road
+        image_temp = cv2.medianBlur(image_temp, 5)
+        var, image_temp = cv2.threshold(image_temp, 10, 255, cv2.THRESH_BINARY)  # maska: 1-droga 0-otoczenie
+        mask = copy.copy(image_temp)
+        cv2.imshow("mask", mask)
+        cv2.waitKey(0)
+        im2, contours, hier = cv2.findContours(mask, 1, 2)
+        contours = contours[0]
+        epsilon = 0.01*cv2.arcLength(contours, True)
+        contours = cv2.approxPolyDP(contours, epsilon, True)
+        cv2.polylines(self.image_to_display, [contours], 1, (0, 255, 0), 3)
