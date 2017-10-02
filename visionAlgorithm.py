@@ -9,13 +9,14 @@ class VisionAlgorithm:
         self.image_raw = []
         self.image_to_display = []
         self.image_in_process = []
+        self.width_of_lines = ()
 
     IMG_WIDTH = 640
     IMG_HEIGHT = 480
 
     def load_image(self):
         
-        self.image_raw = cv2.imread("test_images/test_image_17.jpg")
+        self.image_raw = cv2.imread("test_images/test_image_14.jpg")
         self.img_original_width = self.image_raw.shape[1]
         self.image_ratio = self.img_original_width/self.image_raw.shape[0]
         self.img_original_height = int(self.img_original_width / self.image_ratio)
@@ -47,7 +48,7 @@ class VisionAlgorithm:
         #szukam krawędzi za pomocą metody Canney'ego - progi eksperymentalne
         image2analyse = cv2.medianBlur(image2analyse, 7)
 
-        var, linie = cv2.threshold(image2analyse, 220, 255, cv2.THRESH_BINARY)  #linie, by szukać wymiarów
+        var, linie = cv2.threshold(image2analyse, 230, 255, cv2.THRESH_BINARY)  #linie, by szukać wymiarów
         self.show_image(linie) #test
 
 
@@ -73,6 +74,7 @@ class VisionAlgorithm:
         corners_of_image = np.array([[1, img_h_diag], [img_w_diag, img_h_diag], [img_w_diag, 1], [1, 1]], dtype="float32")
 
         contours = np.array([contours[0][0], contours[1][0], contours[2][0], contours[3][0]], dtype="float32")
+        self.line_dimensions(linie, contours)
         contours, coeff_h, coeff_w = self.scale(contours)
         transform = cv2.getPerspectiveTransform(contours, corners_of_image)
 
@@ -90,6 +92,31 @@ class VisionAlgorithm:
         contours[:, 0] = contours[:, 0] * coeff_h
         return contours, coeff_h, coeff_w
 
-    def line_dimensions(self, img):
-        #idz po dolnych liniach i zlicz ile pikseli, moze wykres
+    def line_dimensions(self, img, contours):
+        med_low = (contours[0][1]+contours[1][1])/2  # średnie wysokości górnej i dolnej krawędzi
+        med_high = (contours[2][1]+contours[3][1])/2
+        low_line_size = 0
+        high_line_size = 0
+        flag_low = 0
+        flag_high = 0
+        for i in range(0, img.shape[1]):
+            if img[int(med_high), i] == 255 and flag_high == 0: # zapewnia przeliczenie szerokości JEDNEJ, pierwszego napotkanej linii
+                flag_high = 1
+            if flag_high == 1 and img[int(med_high), i] == 0:
+                flag_high = -1
+            if img[int(med_high), i] == 255 and flag_high == 1:
+                high_line_size = high_line_size + 1
+
+            if img[int(med_low), i] == 255 and flag_low == 0:
+                flag_low = 1
+            if flag_low == 1 and img[int(med_low), i] == 0:
+                flag_low = -1
+            if img[int(med_low), i] == 255 and flag_low == 1:
+                low_line_size = low_line_size + 1
+        self.width_of_lines = (high_line_size, low_line_size) #szerokość jednej linii 12cm w pikselach na górze i na dole obrazka
+        print(high_line_size, low_line_size)
+        print(i)
+        print(med_high, med_low)
+
+
 
